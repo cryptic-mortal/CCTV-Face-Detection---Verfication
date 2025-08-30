@@ -12,10 +12,10 @@ import pandas as pd
 
 # ---------- Constants ----------
 FACE_DB_JSON = "face_db.json"
-FACE_NAMES_JSON = "face_names.json"   # NEW: persistent id->name mapping
+FACE_NAMES_JSON = "face_names.json"  
 LOG_CSV = "face_log.csv"
 
-# ---------- FAISS (optional) ----------
+# ---------- FAISS ----------
 try:
     import faiss
     FAISS_AVAILABLE = True
@@ -40,7 +40,7 @@ def _merge_segments(segments, max_gap_frames):
             merged.append([start, end])
     return merged
 
-# ---------- Models (cached) ----------
+# ---------- Models ----------
 @st.cache_resource
 def load_models():
     yolo_model = YOLO("yolo11s.pt")  # Ensure your model path is correct
@@ -74,7 +74,7 @@ def run_face_analysis(input_video_path, output_video_path, face_db_json, face_na
             st.warning(f"Could not read '{face_db_json}'. Starting with a new database.")
             face_db, next_face_id = {}, 0
 
-    # --- Load names (use string keys for JSON compatibility) ---
+    # --- Load names ---
     face_names = {}
     if os.path.exists(face_names_json):
         try:
@@ -252,7 +252,7 @@ def run_face_analysis(input_video_path, output_video_path, face_db_json, face_na
         serial = {str(fid): [e.tolist() for e in embs] for fid, embs in face_db.items()}
         json.dump(serial, f, indent=2)
 
-    # Build current-run log rows (with Name column)
+    # Build current-run log rows
     run_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     max_gap_frames = int(5 * fps)
     current_run_data = []
@@ -279,7 +279,7 @@ def run_face_analysis(input_video_path, output_video_path, face_db_json, face_na
                     writer.writerow(row_dict.values())
                     current_run_data.append(row_dict)
 
-    # Return DF + db + names + fps (used outside)
+    # Return DF + db + names + fps
     return (pd.DataFrame(current_run_data) if current_run_data else pd.DataFrame(),
             face_db,
             face_names,
@@ -358,7 +358,7 @@ if uploaded_file is not None:
 
         # NOTE: do not delete temp files here; we show them below and after saving names.
 
-# ---------- Post-run UI (persists across reruns) ----------
+# ---------- Post-run UI ----------
 if st.session_state.show_postrun:
     st.success("✅ Processing Complete!")
 
@@ -422,7 +422,7 @@ if st.session_state.show_postrun:
             with open(FACE_NAMES_JSON, "rb") as f:
                 st.download_button("⬇️ Download Face Names JSON", f, "face_names.json")
 
-    # Cleanup button (so we don't delete temp video before user is done)
+    # Cleanup button
     if st.button("Finish & Clean Up"):
         # remove temp files if present
         try:
